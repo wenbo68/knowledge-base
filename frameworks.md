@@ -51,3 +51,45 @@
             - user info: new rag for each app in the past; now uses store (InMemoryStore/PostgresStore/etc); dev or agent decides what should be stored in long term memory; rag under the hood (returns relevant info based on a query)
             - doc info: implement your own rag for each app; use either llamaindex VectorStoreIndex or langchain VectorStore
         - tool: mem0
+
+# python
+- every file is executed from top to bottom line by line
+    - if the line is an import, it will execute the imported file from top to bottom
+        - only if the import has not been executed yet
+        - if the import has been executed, it will not be executed again
+    - everything defined at 0 indent is exported
+        - whether it's a class/function/var
+- context var? what's the java/typescript equiv?
+- python paradigm
+    - comparison
+        - java: oop + functional (stream/lambda)
+        - typescript: mostly procedural (react comp) + functional
+            - oop possible
+        - python
+            - procedural: regular helper function that can change some global state
+                - eg api endpoints
+            - functional: functions that returns new values instead of changing input
+                - eg list processing
+            - oop: when to use oop? think in terms of your states/variables
+                - constant state: global variable
+                - editable states: global variable + procedures
+                    - avoid static class (class without init) as the file itself acts like static class in python
+                - editable states + complex init: oop (class states + methods)
+                    - eg env var config
+                - you need many instances: oop
+                    - eg db connections
+
+# fastapi
+- `uvicorn app.main:app`
+    - go to `app` folder `main` file and run the var `app`
+- main.py
+    - lifespan: execute sth on app startup and shutdown
+    - fastapi app
+        - middlewares
+            - observability: logging, metrics, tracing
+            - security: cors
+        - custom global error handling: based on error type
+        - router
+            - nextjs uses automatic file-based routing but in fastapi you must manually set up routing
+        - state: storage for easy retrieval elsewhere
+            - limiter
