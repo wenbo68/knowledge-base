@@ -60,7 +60,7 @@
     - everything defined at 0 indent is exported
         - whether it's a class/function/var
 - context var? what's the java/typescript equiv?
-- python paradigm
+- programming paradigm
     - comparison
         - java: oop + functional (stream/lambda)
         - typescript: mostly procedural (react comp) + functional
