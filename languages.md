@@ -1,16 +1,23 @@
-# compiler
-- converts source code to byte code, byte code to machine code, or source code to machine code
-- transpiler: converts source code to another source code (eg ts to js)
+# running different languages
 
-# interpreter
-- reads byte code and runs the matching pre-defined machine code
-    - does not convert byte code to machine code
-- if a loop has 100 loops, interpreter has to go through it 100 times
-    - whereas a compiler just turns the loop to fast machine code
-    - thus a jit compiler is needed
+## terms
+- compiler
+    - converts source code to byte code, byte code to machine code, or source code to machine code
+    - transpiler: converts source code to another source code (eg ts to js)
 
-# language differences
-1. C/C++/C#
+- interpreter
+    - reads byte code and runs the matching pre-defined machine code
+        - does not convert byte code to machine code
+    - if a loop has 100 loops, interpreter has to go through it 100 times
+        - whereas a compiler just turns the loop to fast machine code
+        - thus a jit compiler is needed
+
+- jit compiler
+    - compiles parts of your byte code frequently accessed by your interpreter into machine code
+        - so hotspots run fast
+
+## languages
+- C/C++/C#
     - how
         - past
             1. buy different computers/os
@@ -28,13 +35,13 @@
             - aka ahead of time (aot)
         - c is largely for executables
             - source code cannot protect ip; machine code can
-2. Java
+- Java
     - how
         - developer
             1. 1 computer/os
             2. download java compiler
                 - OR the entire jdk: compiler + jre + dev tools
-            3. compile source code to byte code (jar; executable)
+            3. compile source code to byte code (.class; executable)
             4. give byte code to user
         - user
             1. download a jre: jvm + default java libs
@@ -56,7 +63,7 @@
         - devs can obfuscate the byte code
         - or just do saas: server runs byte code for user
             - user only sees ui code
-3. Python
+- Python
     - how
         - developer
             1. give source code to user
@@ -73,7 +80,7 @@
     - IP protection
         - devs send source code to users
         - so python is either open source or saas
-4. js/ts
+- js/ts
     - how
         - dev
             1. build source code
@@ -93,3 +100,45 @@
     - why python can't just copy js jit compilers when both are dynamically typed?
         - cpython owes its success to the c libs
             - an aggressive jit compiler can interfere with c libs' memory management
+
+
+# memory management in different languages
+- list concatenation: combining multiple lists into 1 big list
+    - during concat, the small lists and the big list must exist in memory together
+        - leads to memory spike
+    - also, you're moving data to the small list and then the big list
+        - wasted compute
+    - solution: only use 1 big list and append directly to big list
+        - when needed, created a new list with double the size and copy from old to new list
+            - still has memory spike and wasted compute
+            - but resizing happens rarely as you double the size every time
+        - underlying implementation of ArrayList in java
+- python
+    - common memory spikes
+        - python variables (aka python objects) use lots of memory
+            - must avoid creating lots of python variables (eg 1 python var for each data point)
+            - solution: create 1 python variable pointing to a numpy array
+        - converting a python var (eg list) to numpy array
+            - both the python list (lots of ram) and numpy array (smaller but still takes up ram) must exist in ram
+        - python list concatenation
+            - solution: must implement java ArrayList on your own
+    - common slow operations
+        - iterating through a list/matrix of same-type vars (eg filtering data)
+            - other languages: for/while loop
+            - python:
+                - if loop is o(n) or slower: python loop = too slow
+                    - in this case, we don't loop through the numpy array; we mask the numpy array (ie let c do the looping)
+                - if loop is o(log n) or faster: python loop = fine
+        - iterating through a list/matrix of non-same-type vars
+            - cannot vectorize: cannot use np array (and thus no masking either)
+
+# concurrency in different languages
+- python
+    - parallel processes via `concurrent.futures.ProcessPoolExecutor` do not share memory
+        - if you want to combine results from different processes, they have to serialize the results and send them through inter-process communication (ipc) to the main process, which then have to deserialize the results.
+            - serialization/deserialization are slow compute tasks + takes up lots of ram
+        - solution: let processes write results to a file but save to ram folders (eg /tmp, /dev/shm)
+            - this way the main process can easily access results from all other processes via the shared memory (aka shm)
+    - but since 3.8, parallel processing via `multiprocessing.shared_memory` can share memory
+        - but you cannot change the size of the shared memory
+            - meaning you must know how much ram each process needs in advance

@@ -1,0 +1,22 @@
+# terms
+- node: a langgraph node/function (eg chat, tool)
+    - nodes can form a workflow/graph
+    - an edge btw 2 nodes doesn't mean 1 node is passing data to the other
+        - it just means: execute the 1st node, then execute the 2nd node
+        - data is accessible to all nodes anyway via langgraph state
+    - some nodes use llm while others (eg tool nodes)don't
+- agent: the prompt
+    - if you have 1 big prompt, you have 1 agent
+    - if you have multiple prompts, you have multiple agents
+    - note: changing the model while using the same prompt means the same agent (just different brain power)
+- ReAct: start -> chat -> tool -> chat -> end
+    - multi-node workflow
+    - mostly single-agent: 1 sys prompt
+- multi-agent design/architecture/orchestration/etc
+    - simple routing
+        - if/else node to decide which agent/node to execute next deterministically based on current langgraph state
+    - supervisor
+        - a supervisor agent decides which agent/node to execute next probabilistically
+            - worker agent must report back to supervisor agent
+    - swarm
+        - any agent can decide which agent/node to execute next probabilistically
