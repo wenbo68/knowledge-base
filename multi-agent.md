@@ -5,14 +5,24 @@
         - it just means: execute the 1st node, then execute the 2nd node
         - data is accessible to all nodes anyway via langgraph state
     - some nodes use llm while others (eg tool nodes)don't
-- agent: the prompt
+- agent: the prompt (persona)
     - if you have 1 big prompt, you have 1 agent
     - if you have multiple prompts, you have multiple agents
     - note: changing the model while using the same prompt means the same agent (just different brain power)
-- ReAct: start -> chat -> tool -> chat -> end
-    - multi-node workflow
-    - mostly single-agent: 1 sys prompt
-- multi-agent design/architecture/orchestration/etc
+- ReAct agent: start -> chat -> tool -> chat -> end
+    - notes
+        - multi-node workflow
+        - single-agent: 1 sys prompt
+        - older/default agent type in a multi-agent system
+    - node routing: 2 ways
+        - in chat node, llm decides the next node
+            - ie writes next node's name in state
+            - probabilistic
+            - older/default way to route in ReAct
+        - in chat node, llm just updates state
+            - then a router decides next node based on state
+            - deterministic: better for enforcing business rules
+- multi-agent design: 3 ways for agent routing/orchestration
     - simple routing
         - if/else node to decide which agent/node to execute next deterministically based on current langgraph state
     - supervisor
@@ -20,3 +30,4 @@
             - worker agent must report back to supervisor agent
     - swarm
         - any agent can decide which agent/node to execute next probabilistically
+- thread: each thread have the same graph but different checkpoints
