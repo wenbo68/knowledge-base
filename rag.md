@@ -11,6 +11,31 @@
     - For llamaindex, set arbitrary embed and inference models via Settings.embed_model and Settings.llm (default is openai for both)
     - If your app is 90% RAG (reading pdfs), use llamaindex for inference as well; otherwise use llamaindex to index/retrieve and langchain for inference and orchestration
 
+# passive vs agentic rag
+- passive rag
+    - system retrieves docs based on user query and append to sys prompt for inference
+        - one-shot; black box; outdated
+- agentic rag
+    - rag search is a tool the agent can use
+    - modern rag workflow
+        - simple 2-node workflow
+            1. chat: decides user query requires fetching knowledge bank via rag
+            2. tool: does rag search
+            3. chat: evaluate rag search results
+                - can search again using different input OR end
+        - multi-node workflow
+            1. analyze: analyze user query and route to end OR next node
+                - ask user for more info
+                - answer general query using sys prompt or pre-trained knowledge
+                - decides rag is needed
+            2. create research plan
+            3. do research: ReAct style
+                - llm: generate rag queries
+                - tool: retrieve docs
+                - llm: evaluate results
+                    - if not good, search again with a different query
+            4. answer
+
 # regular rag vs graphrag
 - tools
     1. regular rag
@@ -32,3 +57,77 @@
                 - for relationships:
                     - usually a graph have much fewer relationships than graphs, so we just give the names of all our relationships to the llm as a prompt b/f generating cypher
                     - but if there are lots of relationships, we index them too
+
+# knowledge graph
+- knowledge graph: ontology + graph
+    - ontology: logic/relationship of classes
+        - classes = generic concepts
+            - eg machine produces clothes; human wears clothes
+                - machine/clothes/human are classes
+        - where does it live?
+            - write a .owl/.ttl file when creating ontology
+            - pydantic: enforce source data into valid nodes
+            - neo4j: constraints
+            - llm prompt: must have the entire ontology as json, etc.
+    - graph: just a data structure consisting of nodes/edges
+        - nodes = instances of classes
+            - eg machine1 produced clothes1
+                - machine1/clothes1 are nodes
+    - quality: depends on how good the edges are
+        - can insert better edges via graph algo or llm
+    - if using for graphrag chatbot
+        - must have both tables and graphs as they store different stuff
+            - tables: stores all properties
+                - graphs: stores useful subset of properties
+            - graphs: stores all context (via edges)
+                - tables: stores a subset of context (via foreign keys)
+        - data should flow to postgres first, then to neo4j (instead of simultaneously to both)
+            - if postgres rejects a data, neo4j must reject it too
+            - writing to graph requires more processing than writing to table
+            - so better to write all to table and then to graph
+- steps: source data -> knowledge graph
+    1. source data
+        - call fastapi endpoints to give data
+    2. queue
+        - only needed if one of the following is true
+            - source data spawn faster than postgres can handle inserts
+            - source cannot retry so we need queue for retry
+    3. fastapi backend
+        - validates data
+            - can return immediately here we use a queue between source data & backend
+            - else must return after db inserts so that source hold data in case retries are needed
+        - writes data to postgres
+        - writes data + context (based on the api call) to "outbox" table
+            - format: node | edge (with context) | node
+    4. pgbouncer + postgres
+        - needs to delete outbox rows that debezium finished reading
+        - OR only delete old rows (eg 7 days ago) for audit purposes
+    5. debezium: change data capture
+        - only tracks outbox table
+        - streams changes to aws sqs fifo queue
+    6. aws sqs fifo queue (or kafka?)
+        - fifo to keep chronological order of messages
+            - so that nodes are created before subsequent messages add edges to those nodes
+        - for each msg, can use 1 node name as message group key
+            - all msg with the same key only go to the same worker
+                - meaning messages using nodeA flows chronologically to 1 worker only
+            - reduce chances of deadlocks when inserting to graph
+                - deadlocks = 2 batches work on the same node
+                    - 1 batch with messages on the same node is ok. why?
+                - does not fully eliminate deadlocks
+                    - b/c each msg has 2 nodes but you can only use 1 as message group key
+    7. python workers
+        - get a batch of messages from queue
+        - aggregate messages: only write final state to graph
+            - less writes
+        - if neo4j throws error due to deadlocks, worker does retry
+    8. neo4j graph
+        - currently just regular/relational graph, not knowledge graph
+    9. create better edges? when to execute this considering that new data constantly come in?
+        - graph algorithms: using neo4j gds libs, etc.
+            - fast/cheap, deterministic and mathematically correct
+            - cannot interpret text properties of nodes
+        - python worker using llm
+            - slow/costly, probabilistic (need guardrails or might pollute graph with bad edges)
+                - only run on nodes flagged by graph algo AND has unstructured properties
+            - only way to interpret unstructured properties

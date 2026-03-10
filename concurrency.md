@@ -72,6 +72,11 @@
             - hard and complicated
         3. have a separate backend server for multi-threading the slow compute tasks
 
-# terms
-- "runs in the background"
-    - anything that's non-blocking: slow compute (via multi-threading) or i/o (via async)
+# confusion
+- cpu-bound tasks = slow compute tasks
+- i/o-bound tasks = i/o tasks
+- some people say sync/async to mean it's sync/async for client/user
+    - sync: api request waits for everything to complete
+    - async: api request returns immediately after triggering some task (ie fire and forget)
+        - the task "runs in the background"
+            - anything that's non-blocking: slow compute (via multi-threading) or i/o (via async)

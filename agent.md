@@ -9,7 +9,14 @@
     - if you have 1 big prompt, you have 1 agent
     - if you have multiple prompts, you have multiple agents
     - note: changing the model while using the same prompt means the same agent (just different brain power)
-- ReAct agent: start -> chat -> tool -> chat -> end
+- thread: each thread have the same graph but different checkpoints
+- skill.md
+    - instead of feeding 1 big sys prompt and big json of tool info to llm
+    - just put a list of skills in sys prompt
+        - when llm needs a skill, it reads that skill.md, which contains further prompt and tool info
+
+# single vs multi agent
+- 1 single ReAct agent: start -> chat -> tool -> chat -> end
     - notes
         - multi-node workflow
         - single-agent: 1 sys prompt
@@ -30,4 +37,10 @@
             - worker agent must report back to supervisor agent
     - swarm
         - any agent can decide which agent/node to execute next probabilistically
-- thread: each thread have the same graph but different checkpoints
+- when to use which?
+    - same task/workflow: 1 agent
+    - same task/workflow but needs many domain knowledge: 1 agent + skill.md
+        - if system prompt too long OR too many tools, use skill.md
+            - llm loads skill.md (and associated tools) only when that skill is needed
+            - skill.md supported in langgraph since 2026/03
+    - different tasks/workflows: multi-agent (use skill.md as needed to simplify prompt)

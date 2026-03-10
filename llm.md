@@ -31,7 +31,7 @@
             - the hard (stress test): tricky queries that test reasoning limits
         - 2 main columns (same as fine-tuning): user input + expected inference output + (if rag) expected retrieved nodes
 
-# debugging llm
+# debugging llm: outdated (only covers 1 ReAct agent + passive RAG)
 - python code might be right, but llm behavior or thinking process might be wrong (or it might just hallucinate)
 - steps:
     1. you find llm doing wrong things (give bad answer, wrong thought process, etc.) in langsmith to a certain user query
@@ -52,3 +52,49 @@
     6. if still fails OR if too many few-shots OR if latency issues from few-shotting...
         - if it's a knowledge problem: add rag or internet search
         - if it's a behavior/style problem: fine tune the inference model
+
+# 2026 llm vs regular app production observability/maintenance/debugging
+- regular
+    - user reports production bugs/crashes
+    - you check production observability
+        - logs + monitoring + traces
+    - you fix the bug locally
+    - create unit tests for new code
+    - ci/cd: test & push
+- llm
+    - user reports/downvotes bad answers
+        - you add this q/a to eval dataset
+            - use auto-curation feature to generate similar q/a pairs
+    - you check production observability: no llm logging/apm; only llm traces
+        - 3 pillars: 3 possible problems
+            - routing problem: went to wrong node/agent
+            - skill problem: wrong steps
+                - couldn't find the right skill.md?
+            - data problem: llm didn't have the data the user wanted
+                - add rag if not yet
+                - rag agent cannot generate good rag query?
+                    - need better query expansion skill
+                - rag agent cannot evaluate rag results?
+                - embedding model cannot return good docs?
+    - you fix the bug locally
+        - agent problem
+            1. prompt engineering
+                - fix prompt/skill
+                - add few-shot examples
+            2. route hard user query to better model
+            3. only fine-tune a smaller model as optimization step to reduce latency and token cost caused by prompt/skill
+        - rag problem: your rag agent has solid search/evaluate workflow, but you just can't get the data you need
+            1. don't use rag at all: prompt isn't that expensive anymore due to prompt caching
+                - but long prompts may still affect agent performance negatively 
+            2. reranker pipeline: biencoder/bm25 -> colbert -> cross encoder
+            3. reindex
+                - better chunking: use llm to chunk
+                - better embedding model
+                - use graphrag: allows for better logic/relationship btw concepts
+    - we already have the eval dataset for "unit testing"
+        - already contains the q/a pairs we wanted to fix
+        - also contains previous q/a pairs for testing regression
+    - ci/cd: test (eval dataset + shadow testing) & push
+        - shadow testing: we first push new version to a shadow env that receives the same real user queries as the actual production
+        - and we let llm score both production and shadow answers
+        - if shadow scores say 5% better for 1000 queries, we push shadow to production

@@ -78,6 +78,47 @@
                     - eg env var config
                 - you need many instances: oop
                     - eg db connections
+- cpu core utilization
+    - python has global interpreter lock (gil): the python process/program can only use 1 core
+    - gunicorn/uvicorn: creates multiple identical processes from your code to use more cores
+        - behaves like separate servers
+            - they don't share memory: you cannot pass data/tasks btw them
+            - has a load balancer to distribute requests among these processes
+        - best practice: create 2*#core+1 processes
+- parallel processing
+    - use parallel processing libs (eg multiprocessing)
+        - forks the current process into new processes to use more cores
+            - can share memory if you use `multiprocessing.shared_memory`
+        - should not be used in web servers like gunicorn/uvicorn
+            - gunicorn/uvicorn already creates lots of processes to use more cores
+                - no cores left for parallel processing cpu-bound tasks
+                - must do time slicing between processes within the same core
+    - in web servers, offload cpu-bound tasks out of python completely to background workers
+        - eg celery
+- db connection
+    - driver libs
+        - psycopg
+            - psycopg2: outdated
+            - psycopg3: sync + async
+                - but async slower than asyncpg
+        - asyncpg
+            - only async
+    - orm
+        - sqlalchemy
+    - process-level connection pool
+        - where?
+            - psycopg/asyncpg: built-in connection pool
+                - if you are using sqlalchemy for orm, use sqlalchemy connection pool
+                - if you just write raw sql, use psycopg/asyncpg connection pool
+            - sqlalchemy: built-in connection pool
+        - these are only process level connection pools
+            - gunicorn/uvicorn creates multiple processes, each with its own connection pool
+                - eg if 1 server has 10 processes each with 20 db connections, that server has 200 connections
+                - but postgres only has 100 connections by default
+    - pgbouncer: db-level connection pool
+        - handles when servers have more db connections than the db has
+        - not needed if the db has a built-in pgbouncer
+            - eg neon postgres
 
 # fastapi
 - `uvicorn app.main:app`
