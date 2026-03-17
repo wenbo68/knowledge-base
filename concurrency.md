@@ -75,8 +75,21 @@
 # confusion
 - cpu-bound tasks = slow compute tasks
 - i/o-bound tasks = i/o tasks
-- some people say sync/async to mean it's sync/async for client/user
-    - sync: api request waits for everything to complete
-    - async: api request returns immediately after triggering some task (ie fire and forget)
-        - the task "runs in the background"
-            - anything that's non-blocking: slow compute (via multi-threading) or i/o (via async)
+
+# process vs thread
+- process
+    - characteristics
+        - os isolates processes to have independent memory, etc
+            - one process crashing doesn't affect others
+        - creating a new process or switching between processes is slow/heavy
+    - example
+        - most apps are 1 process
+        - for browsers, the browser is a process and each tab is a process
+- thread
+    - characteristics
+        - os creates threads for a process when requested
+            - threads share the process's memory
+        - creating a new thread or switching between threads is fast/light
+    - example
+        - each thread does 1 task for an app
+        - microsoft word may have a thread for ui, spell check, auto save, etc.

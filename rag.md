@@ -88,24 +88,24 @@
 - steps: source data -> knowledge graph
     1. source data
         - call fastapi endpoints to give data
-    2. queue
+    2. queue: managed queue like aws sqs
         - only needed if one of the following is true
             - source data spawn faster than postgres can handle inserts
             - source cannot retry so we need queue for retry
-    3. fastapi backend
+    3. fastapi backend: paas (cannot use faas because chatbot needs streaming)
         - validates data
             - can return immediately here we use a queue between source data & backend
             - else must return after db inserts so that source hold data in case retries are needed
         - writes data to postgres
         - writes data + context (based on the api call) to "outbox" table
             - format: node | edge (with context) | node
-    4. pgbouncer + postgres
+    4. pgbouncer + postgres: paas like rds (cannot use serverless because needs to stream via cdc)
         - needs to delete outbox rows that debezium finished reading
         - OR only delete old rows (eg 7 days ago) for audit purposes
-    5. debezium: change data capture
+    5. debezium: managed cdc like aws dms
         - only tracks outbox table
         - streams changes to aws sqs fifo queue
-    6. aws sqs fifo queue (or kafka?)
+    6. fifo queue: managed fifo queue like aws sqs fifo
         - fifo to keep chronological order of messages
             - so that nodes are created before subsequent messages add edges to those nodes
         - for each msg, can use 1 node name as message group key
@@ -116,18 +116,27 @@
                     - 1 batch with messages on the same node is ok. why?
                 - does not fully eliminate deadlocks
                     - b/c each msg has 2 nodes but you can only use 1 as message group key
-    7. python workers
+    7. python workers: paas (as workers must be always up)
         - get a batch of messages from queue
         - aggregate messages: only write final state to graph
             - less writes
         - if neo4j throws error due to deadlocks, worker does retry
-    8. neo4j graph
+        - also finds critical messages and triggers edge making
+    8. neo4j graph: dbaas like neo4j auradb
         - currently just regular/relational graph, not knowledge graph
-    9. create better edges? when to execute this considering that new data constantly come in?
-        - graph algorithms: using neo4j gds libs, etc.
-            - fast/cheap, deterministic and mathematically correct
-            - cannot interpret text properties of nodes
-        - python worker using llm
-            - slow/costly, probabilistic (need guardrails or might pollute graph with bad edges)
-                - only run on nodes flagged by graph algo AND has unstructured properties
-            - only way to interpret unstructured properties
+    9. create better edges: paas (must be always up)
+        - when to execute this considering that new data constantly come in?
+            - reactive trigger
+                - when python worker finds a flag in the message
+            - proactive trigger
+                - runs every 15 min
+            - on-demand trigger
+                - requested by user
+        - 2 ways
+            - graph algorithms: using neo4j gds libs, etc.
+                - fast/cheap, deterministic and mathematically correct
+                - cannot interpret text properties of nodes
+            - python worker using llm
+                - slow/costly, probabilistic (need guardrails or might pollute graph with bad edges)
+                    - only run on nodes flagged by graph algo AND has unstructured properties
+                - only way to interpret unstructured properties

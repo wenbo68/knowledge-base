@@ -38,14 +38,22 @@
         - strict rate limiting to be safe
 
 # error handling
+- note: error handling only works if something goes wrong but the server process is still alive
+    - eg api call failed but app process is fine -> tenacity will retry
+    - eg request caused an error but app process is fine -> try/catch will catch the error and crash that request with json
+    - but what if something happens to the server/process?
+        - eg aws reboots your server, memory leak caused out-of-memory kill, kubernetes replaces your server node to scale up/down, someone pulls your server plug, etc.
+        - result
+            - every request will crash with a 500/502 json
+            - user must retry manually (hopefully the server is back up when user retries)
 - retries
     - retry on i/o (disk, other servers eg db, api)
 - try/catch
     - if you don't catch an error, it will keep bubbling up and crash the app (ie crash the process on the server)
-        - meaning if one request can cause an error that kills the entire app
-        - you need a giant try/catch wrapped around the entire app to prevent this
-            - aka global error handler
-            - implemented by frameworks (eg fastapi, express, spring)
+        - meaning one request can cause an error that kills the entire app
+            - you need a giant try/catch wrapped around the entire app to prevent this
+                - aka global error handler
+                - implemented by frameworks (eg fastapi, express, spring)
     - global error handler
         - what it does
             1. catches any unhandled errors (errors that bubbled to the very top)
@@ -54,6 +62,9 @@
                 - or a custom json based on error type
         - why we need it
             - only crashes that 1 request instead of crashing the entire app
+            - later, devs can check the logs and add try/catch if needed
+                - to handle the error and continue that request
+                - OR to handle the error and crash that request but with a even more custom json
     - try/catch (the specific safety nets)
         - why use it if we have a global handler?
             1. to continue that request instead of crashing it

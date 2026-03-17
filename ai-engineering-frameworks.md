@@ -1,10 +1,24 @@
 # ai agent frameworks
 1. LangGraph
-    - Who: enterprises building complex, multi-step agents
-    - Why: features like state, routers, checkpointers are hard to build from scratch
-2. PydanticAI (competes with langchain)
-    - Who: startups; developers who wants to stay away from proprietary tools
-    - Why: everything is type safe, transparent & easy to debug (whereas langchain needs langsmith for debugging due to non-transparency)
+    - faster to setup/code
+        - langgraph abstracts the db layer
+            - you just write 1 line of code (ie checkpointer)
+    - difficult to maintain/debug
+        - checkpoints are serialized into binary
+            - not human readable
+        - graph can become large
+            - hard to unit test
+            - must use langsmith to debug
+                - langfuse won't work well
+2. PydanticAI + Logfire + Temporal
+    - slower to setup/code
+        - must implement db layer on your own
+        - must run Temporal daemon for durable agent execution
+            - eg resume from crash, human in the loop
+    - easier to maintain/debug
+        - we can just serialize checkpoints to json
+        - no graph; just python functions using dep injection
+            - easy to test
 3. LLM Gateways (eg LiteLLM, Portkey)
     - Who: both langgraph and pydanticAI can use this
     - Code: write everything in openai code, then call the gateway, which decides what model to send request to

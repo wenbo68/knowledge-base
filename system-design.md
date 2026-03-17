@@ -151,3 +151,11 @@
     - vertical: edit yaml config (increase StatefulSet limits)
     - horizontal: use a Kubernetes Operator (eg CloudNativePG) -> request operator for more db instances -> handles master-slave automatically
 5. "serverless" paas: auto-scaling
+
+## connections
+- http
+    - synchronous request
+    - must be fast or will timeout
+- websocket
+    - can be held open for a long time by the server in ram (doesn't consume cpu)
+- webhook

@@ -220,3 +220,7 @@
 - file caching
     - content delivery network (cdn)
         - eg cloudflare, aws cloudfront
+
+## notes
+- fastapi and langgraph should be different servers
+- what if 

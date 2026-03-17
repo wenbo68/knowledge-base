@@ -134,11 +134,22 @@
 
 # concurrency in different languages
 - python
-    - parallel processes via `concurrent.futures.ProcessPoolExecutor` do not share memory
-        - if you want to combine results from different processes, they have to serialize the results and send them through inter-process communication (ipc) to the main process, which then have to deserialize the results.
-            - serialization/deserialization are slow compute tasks + takes up lots of ram
-        - solution: let processes write results to a file but save to ram folders (eg /tmp, /dev/shm)
-            - this way the main process can easily access results from all other processes via the shared memory (aka shm)
-    - but since 3.8, parallel processing via `multiprocessing.shared_memory` can share memory
-        - but you cannot change the size of the shared memory
-            - meaning you must know how much ram each process needs in advance
+    - cpython memory management is not thread safe
+        - so cpython added gil: only a thread can execute python at a time
+            - even if a process creates multiple threads for parallel execution of some cpu-bound task, only 1 thread runs at a time
+                - no parallel execution but also no race conditions (no need for locks/mutexes)
+            - but if a thread is waiting on i/o, other threads can run python
+                - so cpython multi-threading works for i/o-bound tasks
+                - but you should just do async programming for i/o-bound tasks using 1 thread
+    - thus cpython parallel processing libs create multiple processes instead of threads
+        - so cpython parallel processing does not share memory by default unlike other languages
+        - if you want to pass data between these processes, you must use inter-process communication (ipc)
+            - by deafult, cpython serializes the data, sends them to the target process, which then has to deserialize the data.
+            - but serialization/deserialization are slow compute tasks + takes up lots of ram
+                - solution: let processes write results to a file but save to ram folders (eg /tmp, /dev/shm)
+                - this way the main process can easily access results from all other processes via the shared memory (aka shm)
+        - but since 3.8, parallel processing via `multiprocessing.shared_memory` can share memory by letting the os create a shared memory for the processes
+            - you cannot change the size of the shared memory
+                - meaning you must know how much ram each process needs in advance
+            - you can only pass byte or numpy arrays, not python objects
+            - you must write locks/mutexes to prevent race conditions like other languages
