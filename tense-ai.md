@@ -1,0 +1,26 @@
+# goals
+- knowledge graph
+    - node properties should contain actions/apis the agent can use?
+        - better than listing tools/apis in prompt/skill
+            - fewer tools for agent to choose from
+            - backend can write code so that if api changes, it is updated in db and thus reflected in graph
+- forward propagation: to run simulations (aka what-if scenarios)
+    - need to copy/branch the graph so that the original graph is not affected
+    - palantir uses native primitives like contour/vertex to branch the graph (and then simulate)
+    - but what tech is used by palantir to simulate/predict the graph?
+        - do they use gds libs, llm, or something else?
+        - if they use llm, do they update llm weights if the prediction didn't match reality?
+- backpropagation
+    - 
+- agent: like palantir aip (ai platform)
+    - when there's problem or when requested via chat or when there's a monolis workflow (must know all user workflows in monolist first), agent reasons
+        - based on knowledge graph, what's the best solution
+        - we need to add all apis to knowledge graph? or they just live in prompt/skill.md?
+    - agent suggests actions
+        - suggest api calls
+            - all existing apis should be included in the graph
+        - human can approve to execute that api call
+- agent debate chatroom
+- run agents at the edge on monolog?
+
+- also what about the 5 channels mentioned in the doc?

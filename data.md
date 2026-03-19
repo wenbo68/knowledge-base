@@ -1,0 +1,85 @@
+# oltp (micro crud)
+- database
+    - usage
+        - online transactional processing (oltp)
+            - small-scale, frequent crud operations
+        - for apps
+    - example
+        - postgres (sql), mongodb (nosql)
+- vector db
+    - usage
+        - micro reads
+        - micro/macro writes: supports macro-batch ingestion (eg 10000 pdfs)
+        - for answering ai agent questions
+    - data
+        - vectors/embeddings
+    - example
+        - pgvector, pinecone, etc
+- graph db
+    - usage
+        - built for fast relationship traversal
+            - requires complex joins in regular db (slow and uses lots of ram)
+        - traditionally for micro crud
+            - but graphrag needs macro crud
+                - eg global queries for complex reasoning
+            - so graph db are adopting hybrid transactional/analytical processing (htap)
+    - data
+        - nodes, edges, properties
+    - example
+        - neo4j, aws neptune
+        - falkor db: open source
+            - matrix based, in memory, redis native graph db
+            - faster reads
+            - slower/awkward writes
+                - especially if you have lots of properties
+                    - may need matrix graph db for structure and regular db for properties
+                        - good if you have lots of complex reads (eg graphrag)
+            - good if you have lots of complex reads (eg graphrag)
+
+# olap (macro crud)
+- data warehouse
+    - usage
+        - online analytical processing (olap)
+            - large-scale batch crud operations
+                - complex reads for business in the mornings
+                - large writes by data engineers at night
+        - for answering human executive questions
+            - ie business intelligence (reports, dashboards, etc)
+    - data
+        - structured & cleaned/processed
+    - example
+        - snowflake, aws redshift, google bigquery
+- object storage
+    - usage
+        - raw/cheap storage for everything
+            - images, logs, sensor data, etc
+        - for big data, blob storage, etc
+        - problem
+            - cannot run sql
+                - to read a row: must download entire file
+                - to update a row: must download entire file, update, then upload entire file
+    - data
+        - raw, any format
+    - example
+        - aws s3, google cloud storage, azure blob storage, minio (open-source, on-prem)
+- data lake
+    - usage
+        - object storage but can run sql
+            - query engine sitting on top of obj storage
+        - for data science, ML/AI, etc
+        - problem
+            - can read a row fine
+            - hard to write b/c doesn't support acid transactions
+                - no atomicity: no all-or-nothing/rollbacks
+                - concurrent writes = nightmare
+    - example
+        - hadoop/hdfs
+        - aws s3 (obj storage) + aws athena (query engine)
+- data lakehouse: lake + warehouse
+    - usage
+        - object storage but with acid transactions
+            - obj storage + metadata layer (aka open table format) + query engine
+        - for data science, ML/AI, etc
+    - example
+        - databricks: coined the term data lakehouse
+        - snowflake: started as warehouse, now shifted to lakehouse
