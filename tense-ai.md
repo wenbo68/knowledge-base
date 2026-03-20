@@ -1,26 +1,62 @@
-# goals
-- knowledge graph
-    - node properties should contain actions/apis the agent can use?
-        - better than listing tools/apis in prompt/skill
-            - fewer tools for agent to choose from
-            - backend can write code so that if api changes, it is updated in db and thus reflected in graph
-- forward propagation: to run simulations (aka what-if scenarios)
-    - need to copy/branch the graph so that the original graph is not affected
-    - palantir uses native primitives like contour/vertex to branch the graph (and then simulate)
-    - but what tech is used by palantir to simulate/predict the graph?
-        - do they use gds libs, llm, or something else?
-        - if they use llm, do they update llm weights if the prediction didn't match reality?
-- backpropagation
-    - 
-- agent: like palantir aip (ai platform)
-    - when there's problem or when requested via chat or when there's a monolis workflow (must know all user workflows in monolist first), agent reasons
-        - based on knowledge graph, what's the best solution
-        - we need to add all apis to knowledge graph? or they just live in prompt/skill.md?
-    - agent suggests actions
-        - suggest api calls
-            - all existing apis should be included in the graph
-        - human can approve to execute that api call
-- agent debate chatroom
-- run agents at the edge on monolog?
-
-- also what about the 5 channels mentioned in the doc?
+# notes
+- goals
+    1. help with pqcd optimization: palantir aip agent (reason using knowledge graph -> answer OR suggest actions)
+        - knowledge graph
+            - node properties should contain actions/apis the agent can use?
+                - better than listing tools/apis in prompt/skill
+                    - fewer tools for agent to choose from
+                    - backend can write code so that if api changes, it is updated in db and thus reflected in graph
+        - agent
+            - when there's problem or when requested via chat or when there's a monolis workflow (must know all user workflows in monolist first), agent reasons
+                - based on knowledge graph, what's the best solution
+            - agent suggests actions
+                - suggest api calls
+                    - all existing apis should be included in the graph
+                - human can approve to execute that api call
+    2. supply chain visibility: data visualization
+    3. prediction: run simulations on branched db using mathematical models
+        - examples
+            - impact analysis: what nodes are affected
+            - what-if scenarios: what happens if we change this node
+        - how palantir does it?
+            - copy/branch the graph so that original graph is not affected
+                - palantir uses native primitives like contour/vertex to branch the graph (and then simulate)
+            - run simulation on branched graph
+                - palantir uses mathematical engines (eg time series prediction models) to do simulations
+- 5 ui channels
+    - assistant: palantir aip agent
+    - control: visualize monolog telemetries and agent tasks/status
+    - location: visualize scm data
+    - ontology: visualize knowledge graph
+    - discuss: a way for agent to reason when it needs to suggest critical actions; and the visualization of that reasoning; but really the right way to reason?
+- improvement pipeline
+    - agent improvement
+        - palantir's agent improvement pipeline
+            - doesn't update llm weights
+                - in fact, palantir is entirely model agnostic
+            - focuses on context (graph) and instructions (prompt)
+        - just use your own production-ready agent improvement pipeline
+    - ml improvement
+        - prediction: ml models have weights
+            1. constantly compare prediction vs reality by calculating mean absolute error (mae)
+            2. when mae over threshold, retrain model on latest historical data
+        - operations research constraint solver: solvers have no weights
+            - if agent uses solver and suggests an action but constantly gets rejected, the solver has wrong equations
+- monolog latency
+    - data inference latency
+        - should not run simple inference (eg iot anomaly detection) on cloud server
+            - monolog must send data to cloud server
+                - cloud streaming/ingress: costly/slow
+        - run ml at the edge for simple inference
+            - how?
+                - on monolog directly (if they have microprocessors)
+                - or on edge server in factory (if monolog only has microcontrollers)
+                    - monolog sends data to factory server for inference
+        - only stream critical/anomaly data to cloud server via mqtt
+            - trigger agent
+            - saved to db
+            - reflected in ui
+    - data storage latency
+        - only storing sensor data for audit OR retraining ml models doing the simple inference
+            - batch process during off-peak hours
+            - dump everything to data lake
