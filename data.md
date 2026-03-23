@@ -1,4 +1,5 @@
 # oltp (micro crud)
+
 - database
     - usage
         - online transactional processing (oltp)
@@ -37,6 +38,7 @@
             - good if you have lots of complex reads (eg graphrag)
 
 # olap (macro crud)
+
 - data warehouse
     - usage
         - online analytical processing (olap)

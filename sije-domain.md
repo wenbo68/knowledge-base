@@ -1,4 +1,5 @@
 # players
+
 - brand
     - job
         - may or may not design clothes
@@ -56,7 +57,8 @@
         - in vietnam, etc
 
 # sije's solutions
-- monolog: manufacturing execution system
+
+- monolog: sends clothes production factory data to monolis
     - monolog sensors
         - on actual sensors attached to sewing machines
         - send/receive mqtt messages
@@ -66,12 +68,83 @@
     - monolog main
         - on cloud server
         - runs kafka to aggregate data from all factories
-- monoparts: supply chain management
+- monoparts: sends raw material (eg button, fabric, etc) production factory data (eg count, bill of material, etc) to monolis
     - TypeORM entities for postgres: in src/entities
     - mongoose schemas for mongodb: in src/schemas
-- monolis: enterprise resource planning
+- monolis: contains erp/scm/mes tailored to clothes industry in one place
+    - value: reduces erp/scm/mes silos and communication overhead (eg gmail, docs, etc)
+    - receives data from monolog and monoparts
+    - some cusomters may buy monolis without monolog
+        - user will manually upload factory data to monolis
+    - monolis has 139+ tables that containsß:
+        - ERP Features: Sales Orders, Invoicing, Costing, Payments, Approvals.
+        - SCM Features: Suppliers, Purchase Orders, Warehouses, Shipments, Product Loading.
+        - MES Features: Factory Sites, Machines, Needles, Tools, Operations Breakdowns, Today's Output.
+- monolis + monolog
+    - serves 2 purposes
+        1. factories cannot lie to vendors
+        2. no need for docs and gmails for factories/vendors to communicate
+    - latency
+        - within monolog
+            - seconds: streamed via mqtt/broker
+        - across monolis and monolog
+            - 5 minutes acceptable
+
+# silo within the monolog/monoparts/monolis ecosystem??
+
+- schema silo
+    - different IDs for the same entity across monolog, monoparts, and monolis
+- analytical silo
+    - what no silo looks like
+        - can use 1 sql query to join data from all 3 systems and create bi/dashboards
+    - how do we know?
+        - separate databases but no ways to query all simultaneously
+            - no graphql layer to unify them
+            - no etl to aggregate them into a single data warehouse/lakehouse
+    - what users probably do
+        - exporting csvs from each system and stitching them together in excel for bi
+- operational silo
+    - what no silo looks like
+        - an order is added to erp, which automatically sends a msg to mes and scm.
+    - how do we know?
+        - no inter-service communication (eg http calls, grpc, brokers) in codebases
+            - only broker exists within monolog for communication between sensors, edge, and cloud
+    - what users probably do
+        - 1 user exports data from erp, another user re-enters the data to scm, then another to mes
+- are we trying to break the silo with a knowledge graph and agent?
+    - meaning that the knowledge graph aggregates data from monolog, monoparts, and monolis?
+
+# latency best practices
+
+- monolog latency
+    - data inference latency
+        - should not run simple inference (eg iot anomaly detection) on cloud server
+            - monolog must send data to cloud server
+                - cloud streaming/ingress: costly/slow
+        - run ml at the edge for simple inference
+            - how?
+                - on monolog directly (if they have microprocessors)
+                - or on edge server in factory (if monolog only has microcontrollers)
+                    - monolog sends data to factory server for inference
+        - only stream critical/anomaly data to cloud server via mqtt
+            - trigger agent
+            - saved to db
+            - reflected in ui
+    - data storage latency
+        - only storing sensor data for audit OR retraining ml models doing the simple inference
+            - batch process during off-peak hours
+            - dump everything to data lake
+
+# workflow
+
+- vendor workflow
+    1. confirm order
+    2. plan raw material sourcing
+    3. purchase raw material
+- factory workflow 4. plan production - evaluated -> boolean 5. receive raw material - boolean 6. prepare production - monitored by monolog 7. production - monitored by monolog 8. quality control - boolean 9. ship finished clothes - boolean
 
 # tense ai
+
 - goals
     1. help with pqcd optimization: palantir aip agent (reason using knowledge graph -> answer OR suggest actions)
         - knowledge graph
@@ -115,40 +188,25 @@
             2. when mae over threshold, retrain model on latest historical data
         - operations research constraint solver: solvers have no weights
             - if agent uses solver and suggests an action but constantly gets rejected, the solver has wrong equations
-- monolog latency
-    - data inference latency
-        - should not run simple inference (eg iot anomaly detection) on cloud server
-            - monolog must send data to cloud server
-                - cloud streaming/ingress: costly/slow
-        - run ml at the edge for simple inference
-            - how?
-                - on monolog directly (if they have microprocessors)
-                - or on edge server in factory (if monolog only has microcontrollers)
-                    - monolog sends data to factory server for inference
-        - only stream critical/anomaly data to cloud server via mqtt
-            - trigger agent
-            - saved to db
-            - reflected in ui
-    - data storage latency
-        - only storing sensor data for audit OR retraining ml models doing the simple inference
-            - batch process during off-peak hours
-            - dump everything to data lake
 
-# source data -> knowledge graph
-- medallion architecture
-    - bronze: raw data
-        - old db
-    - silver: clean data
-        - new db
-    - gold: knowledge graph
-        - graph db
-- latency
-    - stream: few seconds
-    - micro batch: few minutes
+# medallion architecture + palantir aip agent + palantir mathematical engines/models
 
-# questions
-- can the user see mes, scm, and erp data in one place/dashboard?
-    - does monolog, monoparts, and monolis share data?
-    - or does frontend use api to show all data at 1 place for user?
-- does the knowledge contain data from monolog, monoparts, and monolis?
-    - or just monolis?
+- medallion architecture: popularized by databricks to create analytical db out of transactional db
+- steps
+    1. bronze
+        - normalized, transactional
+            - safe/fast for updates but slow for reads
+        - palantir aip agent will suggest actions that runs on the bronze db
+            - in fact, the agent will suggest backend api calls that only have access to the bronze db
+    2. silver
+        - denormalized/flat, analytical
+        - palantir aip agent will do sql queries here when needed
+            - eg data aggregation
+                - eg total sales by region
+                - expensive/slow on graph db because needs to touch many nodes and sum them
+        - palantir mathematical engines/models will run here
+    3. gold
+        - knowledge graph
+        - palantir aip agent will do graph queries here when needed
+            - eg multi-hop reasoning
+                - eg supply chain relationships, impact analysis
