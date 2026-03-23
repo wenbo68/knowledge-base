@@ -210,3 +210,4 @@
         - palantir aip agent will do graph queries here when needed
             - eg multi-hop reasoning
                 - eg supply chain relationships, impact analysis
+- pointers to note when going from bronze to silver
